@@ -2,10 +2,10 @@ name: CI
 on:
   push:
     branches:
-      - v2
+      - stainless
   pull_request:
     branches:
-      - v2
+      - stainless
 
 jobs:
   lint:
