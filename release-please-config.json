@@ -59,8 +59,9 @@
       "hidden": true
     }
   ],
-  "release-type": "python",
+  "release-type": "node",
   "extra-files": [
-    "src/meorphis_test_6/_version.py"
+    "src/version.ts",
+    "README.md"
   ]
 }
