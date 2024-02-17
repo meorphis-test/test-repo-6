@@ -1,9 +1,19 @@
-ARG VARIANT="3.9"
-FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
+# syntax=docker/dockerfile:1
+FROM debian:bookworm-slim AS stainless
 
-USER vscode
+RUN apt-get update && apt-get install -y \
+  nodejs \
+  npm \
+  yarnpkg \
+  && apt-get clean autoclean
 
-RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.15.2" RYE_INSTALL_OPTION="--yes" bash
-ENV PATH=/home/vscode/.rye/shims:$PATH
+# Yarn
+RUN ln -sf /usr/bin/yarnpkg /usr/bin/yarn
 
-RUN echo "[[ -d .venv ]] && source .venv/bin/activate" >> /home/vscode/.bashrc
+WORKDIR /workspace
+
+COPY package.json yarn.lock /workspace/
+
+RUN yarn install
+
+COPY . /workspace

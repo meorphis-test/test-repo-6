@@ -1,106 +1,89 @@
-# Meorphis Test 6 Python API library
+# Meorphis Test 6 Node API Library
 
-[![PyPI version](https://img.shields.io/pypi/v/meorphis-test-6.svg)](https://pypi.org/project/meorphis-test-6/)
+[![NPM version](https://img.shields.io/npm/v/meorphis-test-6.svg)](https://npmjs.org/package/meorphis-test-6)
 
-The Meorphis Test 6 Python library provides convenient access to the Meorphis Test 6 REST API from any Python 3.7+
-application. The library includes type definitions for all request params and response fields,
-and offers both synchronous and asynchronous clients powered by [httpx](https://github.com/encode/httpx).
-
-## Documentation
+This library provides convenient access to the Meorphis Test 6 REST API from server-side TypeScript or JavaScript.
 
 The REST API documentation can be found [on docs.meorphis-test-6.com](https://docs.meorphis-test-6.com). The full API of this library can be found in [api.md](api.md).
 
 ## Installation
 
 ```sh
-pip install --pre meorphis-test-6
+npm install --save meorphis-test-6
+# or
+yarn add meorphis-test-6
 ```
 
 ## Usage
 
 The full API of this library can be found in [api.md](api.md).
 
-```python
-from meorphis_test_6 import MeorphisTest6
+<!-- prettier-ignore -->
+```js
+import MeorphisTest6 from 'meorphis-test-6';
 
-client = MeorphisTest6(
-    # defaults to "production".
-    environment="environment_1",
-    api_key="My API Key",
-)
+const meorphisTest6 = new MeorphisTest6({
+  environment: 'environment_1', // defaults to 'production'
+  apiKey: 'My API Key',
+});
 
-account_retrieve_response = client.accounts.retrieve(
-    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-)
-print(account_retrieve_response.token)
+async function main() {
+  const accountRetrieveResponse = await meorphisTest6.accounts.retrieve(
+    '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  );
+
+  console.log(accountRetrieveResponse.token);
+}
+
+main();
 ```
 
-## Async usage
+### Request & Response types
 
-Simply import `AsyncMeorphisTest6` instead of `MeorphisTest6` and use `await` with each API call:
+This library includes TypeScript definitions for all request params and response fields. You may import and use them like so:
 
-```python
-import asyncio
-from meorphis_test_6 import AsyncMeorphisTest6
+<!-- prettier-ignore -->
+```ts
+import MeorphisTest6 from 'meorphis-test-6';
 
-client = AsyncMeorphisTest6(
-    # defaults to "production".
-    environment="environment_1",
-    api_key="My API Key",
-)
+const meorphisTest6 = new MeorphisTest6({
+  environment: 'environment_1', // defaults to 'production'
+  apiKey: 'My API Key',
+});
 
+async function main() {
+  const accountRetrieveResponse: MeorphisTest6.AccountRetrieveResponse =
+    await meorphisTest6.accounts.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+}
 
-async def main() -> None:
-    account_retrieve_response = await client.accounts.retrieve(
-        "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-    )
-    print(account_retrieve_response.token)
-
-
-asyncio.run(main())
+main();
 ```
 
-Functionality between the synchronous and asynchronous clients is otherwise identical.
-
-## Using types
-
-Nested request parameters are [TypedDicts](https://docs.python.org/3/library/typing.html#typing.TypedDict). Responses are [Pydantic models](https://docs.pydantic.dev), which provide helper methods for things like:
-
-- Serializing back into JSON, `model.model_dump_json(indent=2, exclude_unset=True)`
-- Converting to a dictionary, `model.model_dump(exclude_unset=True)`
-
-Typed requests and responses provide autocomplete and documentation within your editor. If you would like to see type errors in VS Code to help catch bugs earlier, set `python.analysis.typeCheckingMode` to `basic`.
+Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
 
 ## Handling errors
 
-When the library is unable to connect to the API (for example, due to network connection problems or a timeout), a subclass of `meorphis_test_6.APIConnectionError` is raised.
+When the library is unable to connect to the API,
+or if the API returns a non-success status code (i.e., 4xx or 5xx response),
+a subclass of `APIError` will be thrown:
 
-When the API returns a non-success status code (that is, 4xx or 5xx
-response), a subclass of `meorphis_test_6.APIStatusError` is raised, containing `status_code` and `response` properties.
+<!-- prettier-ignore -->
+```ts
+async function main() {
+  const accountRetrieveResponse = await meorphisTest6.accounts
+    .retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e')
+    .catch((err) => {
+      if (err instanceof MeorphisTest6.APIError) {
+        console.log(err.status); // 400
+        console.log(err.name); // BadRequestError
+        console.log(err.headers); // {server: 'nginx', ...}
+      } else {
+        throw err;
+      }
+    });
+}
 
-All errors inherit from `meorphis_test_6.APIError`.
-
-```python
-import meorphis_test_6
-from meorphis_test_6 import MeorphisTest6
-
-client = MeorphisTest6(
-    api_key="My API Key",
-)
-
-try:
-    client.accounts.retrieve(
-        "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-    )
-except meorphis_test_6.APIConnectionError as e:
-    print("The server could not be reached")
-    print(e.__cause__)  # an underlying Exception, likely raised within httpx.
-except meorphis_test_6.RateLimitError as e:
-    print("A 429 status code was received; we should back off a bit.")
-except meorphis_test_6.APIStatusError as e:
-    print("Another non-200-range status code was received")
-    print(e.status_code)
-    print(e.response)
+main();
 ```
 
 Error codes are as followed:
@@ -118,152 +101,134 @@ Error codes are as followed:
 
 ### Retries
 
-Certain errors are automatically retried 2 times by default, with a short exponential backoff.
+Certain errors will be automatically retried 2 times by default, with a short exponential backoff.
 Connection errors (for example, due to a network connectivity problem), 408 Request Timeout, 409 Conflict,
-429 Rate Limit, and >=500 Internal errors are all retried by default.
+429 Rate Limit, and >=500 Internal errors will all be retried by default.
 
-You can use the `max_retries` option to configure or disable retry settings:
+You can use the `maxRetries` option to configure or disable this:
 
-```python
-from meorphis_test_6 import MeorphisTest6
+<!-- prettier-ignore -->
+```js
+// Configure the default for all requests:
+const meorphisTest6 = new MeorphisTest6({
+  maxRetries: 0, // default is 2
+  apiKey: 'My API Key',
+});
 
-# Configure the default for all requests:
-client = MeorphisTest6(
-    # default is 2
-    max_retries=0,
-    api_key="My API Key",
-)
-
-# Or, configure per-request:
-client.with_options(max_retries=5).accounts.retrieve(
-    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-)
+// Or, configure per-request:
+await meorphisTest6.accounts.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+  maxRetries: 5,
+});
 ```
 
 ### Timeouts
 
-By default requests time out after 1 minute. You can configure this with a `timeout` option,
-which accepts a float or an [`httpx.Timeout`](https://www.python-httpx.org/advanced/#fine-tuning-the-configuration) object:
+Requests time out after 1 minute by default. You can configure this with a `timeout` option:
 
-```python
-from meorphis_test_6 import MeorphisTest6
+<!-- prettier-ignore -->
+```ts
+// Configure the default for all requests:
+const meorphisTest6 = new MeorphisTest6({
+  timeout: 20 * 1000, // 20 seconds (default is 1 minute)
+  apiKey: 'My API Key',
+});
 
-# Configure the default for all requests:
-client = MeorphisTest6(
-    # 20 seconds (default is 1 minute)
-    timeout=20.0,
-    api_key="My API Key",
-)
-
-# More granular control:
-client = MeorphisTest6(
-    timeout=httpx.Timeout(60.0, read=5.0, write=10.0, connect=2.0),
-    api_key="My API Key",
-)
-
-# Override per-request:
-client.with_options(timeout=5 * 1000).accounts.retrieve(
-    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-)
+// Override per-request:
+await meorphisTest6.accounts.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+  timeout: 5 * 1000,
+});
 ```
 
-On timeout, an `APITimeoutError` is thrown.
+On timeout, an `APIConnectionTimeoutError` is thrown.
 
-Note that requests that time out are [retried twice by default](#retries).
+Note that requests which time out will be [retried twice by default](#retries).
 
-## Advanced
+## Advanced Usage
 
-### Logging
+### Accessing raw Response data (e.g., headers)
 
-We use the standard library [`logging`](https://docs.python.org/3/library/logging.html) module.
+The "raw" `Response` returned by `fetch()` can be accessed through the `.asResponse()` method on the `APIPromise` type that all methods return.
 
-You can enable logging by setting the environment variable `MEORPHIS_TEST_6_LOG` to `debug`.
+You can also use the `.withResponse()` method to get the raw `Response` along with the parsed data.
 
-```shell
-$ export MEORPHIS_TEST_6_LOG=debug
+<!-- prettier-ignore -->
+```ts
+const meorphisTest6 = new MeorphisTest6();
+
+const response = await meorphisTest6.accounts.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e').asResponse();
+console.log(response.headers.get('X-My-Header'));
+console.log(response.statusText); // access the underlying Response object
+
+const { data: accountRetrieveResponse, response: raw } = await meorphisTest6.accounts
+  .retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e')
+  .withResponse();
+console.log(raw.headers.get('X-My-Header'));
+console.log(accountRetrieveResponse.token);
 ```
 
-### How to tell whether `None` means `null` or missing
+## Customizing the fetch client
 
-In an API response, a field may be explicitly `null`, or missing entirely; in either case, its value is `None` in this library. You can differentiate the two cases with `.model_fields_set`:
+By default, this library uses `node-fetch` in Node, and expects a global `fetch` function in other environments.
 
-```py
-if response.my_field is None:
-  if 'my_field' not in response.model_fields_set:
-    print('Got json like {}, without a "my_field" key present at all.')
-  else:
-    print('Got json like {"my_field": null}.')
+If you would prefer to use a global, web-standards-compliant `fetch` function even in a Node environment,
+(for example, if you are running Node with `--experimental-fetch` or using NextJS which polyfills with `undici`),
+add the following import before your first import `from "MeorphisTest6"`:
+
+```ts
+// Tell TypeScript and the package to use the global web fetch instead of node-fetch.
+// Note, despite the name, this does not add any polyfills, but expects them to be provided if needed.
+import 'meorphis-test-6/shims/web';
+import MeorphisTest6 from 'meorphis-test-6';
 ```
 
-### Accessing raw response data (e.g. headers)
+To do the inverse, add `import "meorphis-test-6/shims/node"` (which does import polyfills).
+This can also be useful if you are getting the wrong TypeScript types for `Response` - more details [here](https://github.com/meorphis-test/test-repo-8/tree/v4/src/_shims#readme).
 
-The "raw" Response object can be accessed by prefixing `.with_raw_response.` to any HTTP method call, e.g.,
+You may also provide a custom `fetch` function when instantiating the client,
+which can be used to inspect or alter the `Request` or `Response` before/after each request:
 
-```py
-from meorphis_test_6 import MeorphisTest6
+```ts
+import { fetch } from 'undici'; // as one example
+import MeorphisTest6 from 'meorphis-test-6';
 
-client = MeorphisTest6(
-    api_key="My API Key",
-)
-response = client.accounts.with_raw_response.retrieve(
-    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-)
-print(response.headers.get('X-My-Header'))
-
-account = response.parse()  # get the object that `accounts.retrieve()` would have returned
-print(account.token)
+const client = new MeorphisTest6({
+  fetch: async (url: RequestInfo, init?: RequestInfo): Promise<Response> => {
+    console.log('About to make a request', url, init);
+    const response = await fetch(url, init);
+    console.log('Got response', response);
+    return response;
+  },
+});
 ```
 
-These methods return an [`APIResponse`](https://github.com/meorphis-test/test-repo-6/tree/v2/src/meorphis_test_6/_response.py) object.
+Note that if given a `DEBUG=true` environment variable, this library will log all requests and responses automatically.
+This is intended for debugging purposes only and may change in the future without notice.
 
-The async client returns an [`AsyncAPIResponse`](https://github.com/meorphis-test/test-repo-6/tree/v2/src/meorphis_test_6/_response.py) with the same structure, the only difference being `await`able methods for reading the response content.
+## Configuring an HTTP(S) Agent (e.g., for proxies)
 
-#### `.with_streaming_response`
+By default, this library uses a stable agent for all http/https requests to reuse TCP connections, eliminating many TCP & TLS handshakes and shaving around 100ms off most requests.
 
-The above interface eagerly reads the full response body when you make the request, which may not always be what you want.
+If you would like to disable or customize this behavior, for example to use the API behind a proxy, you can pass an `httpAgent` which is used for all requests (be they http or https), for example:
 
-To stream the response body, use `.with_streaming_response` instead, which requires a context manager and only reads the response body once you call `.read()`, `.text()`, `.json()`, `.iter_bytes()`, `.iter_text()`, `.iter_lines()` or `.parse()`. In the async client, these are async methods.
+<!-- prettier-ignore -->
+```ts
+import http from 'http';
+import HttpsProxyAgent from 'https-proxy-agent';
 
-```python
-with client.accounts.with_streaming_response.retrieve(
-    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
-) as response:
-    print(response.headers.get("X-My-Header"))
+// Configure the default for all requests:
+const meorphisTest6 = new MeorphisTest6({
+  httpAgent: new HttpsProxyAgent(process.env.PROXY_URL),
+  apiKey: 'My API Key',
+});
 
-    for line in response.iter_lines():
-        print(line)
+// Override per-request:
+await meorphisTest6.accounts.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+  baseURL: 'http://localhost:8080/test-api',
+  httpAgent: new http.Agent({ keepAlive: false }),
+})
 ```
 
-The context manager is required so that the response will reliably be closed.
-
-### Configuring the HTTP client
-
-You can directly override the [httpx client](https://www.python-httpx.org/api/#client) to customize it for your use case, including:
-
-- Support for proxies
-- Custom transports
-- Additional [advanced](https://www.python-httpx.org/advanced/#client-instances) functionality
-
-```python
-import httpx
-from meorphis_test_6 import MeorphisTest6
-
-client = MeorphisTest6(
-    # Or use the `MEORPHIS_TEST_6_BASE_URL` env var
-    base_url="http://my.test.server.example.com:8083",
-    http_client=httpx.Client(
-        proxies="http://my.test.proxy.example.com",
-        transport=httpx.HTTPTransport(local_address="0.0.0.0"),
-    ),
-    api_key="My API Key",
-)
-```
-
-### Managing HTTP resources
-
-By default the library closes underlying HTTP connections whenever the client is [garbage collected](https://docs.python.org/3/reference/datamodel.html#object.__del__). You can manually close the client using the `.close()` method if desired, or with a context manager that closes when exiting.
-
-## Versioning
+## Semantic Versioning
 
 This package generally follows [SemVer](https://semver.org/spec/v2.0.0.html) conventions, though certain backwards-incompatible changes may be released as minor versions:
 
@@ -273,8 +238,22 @@ This package generally follows [SemVer](https://semver.org/spec/v2.0.0.html) con
 
 We take backwards-compatibility seriously and work hard to ensure you can rely on a smooth upgrade experience.
 
-We are keen for your feedback; please open an [issue](https://www.github.com/meorphis-test/test-repo-6/issues) with questions, bugs, or suggestions.
+We are keen for your feedback; please open an [issue](https://www.github.com/meorphis-test/test-repo-8/issues) with questions, bugs, or suggestions.
 
 ## Requirements
 
-Python 3.7 or higher.
+TypeScript >= 4.5 is supported.
+
+The following runtimes are supported:
+
+- Node.js 18 LTS or later ([non-EOL](https://endoflife.date/nodejs)) versions.
+- Deno v1.28.0 or higher, using `import MeorphisTest6 from "npm:meorphis-test-6"`.
+- Bun 1.0 or later.
+- Cloudflare Workers.
+- Vercel Edge Runtime.
+- Jest 28 or greater with the `"node"` environment (`"jsdom"` is not supported at this time).
+- Nitro v2.6 or greater.
+
+Note that React Native is not supported at this time.
+
+If you are interested in other runtime environments, please open or upvote an issue on GitHub.
